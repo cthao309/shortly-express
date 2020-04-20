@@ -22,15 +22,15 @@ app.use(CookieParser);
 // enable Auth session
 app.use(Auth.createSession);
 
-app.get('/', (req, res) => {
+app.get('/', Auth.verifySession, (req, res) => {
   res.render('index');
 });
 
-app.get('/create', (req, res) => {
+app.get('/create', Auth.verifySession, (req, res) => {
   res.render('index');
 });
 
-app.get('/links', (req, res, next) => {
+app.get('/links', Auth.verifySession, (req, res, next) => {
   models.Links.getAll()
     .then(links => {
       res.status(200).send(links);
@@ -40,7 +40,7 @@ app.get('/links', (req, res, next) => {
     });
 });
 
-app.post('/links', (req, res, next) => {
+app.post('/links', Auth.verifySession, (req, res, next) => {
   var url = req.body.url;
   if (!models.Links.isValidUrl(url)) {
     // send back a 404 if link is not valid
@@ -89,9 +89,14 @@ app.post('/login', (req, res) => {
   let username = req.body.username;
   let password = req.body.password;
 
+  console.log('use login infor => ', username, password)
+
   return models.Users.get({ username })
-    .then(use => {
+    .then(user => {
       // if user doesn't exist or the password doesn't match, throw error message
+
+      console.log('user => ', user)
+
       if(!user || !models.Users.compare(password, user.password, user.salt)) {
         throw new Error('User name and password does not match');
       }
@@ -101,16 +106,31 @@ app.post('/login', (req, res) => {
     })
     .then(() => {
       // redirect to root endpoint
+      console.log('POST (login) redirect to root endpoint')
       res.redirect('/');
     })
     .error(error => {
+      console.log('POST (login) throw error => ', error)
       // respond with an error message and status code 500
       res.status(500).send(error);
     })
     .catch(() => {
+      console.log('POST (login) redirect to login endpoint')
       // if fail to login, redirect to the login template
       res.redirect('/login');
     })
+})
+
+// endpoint for retreiving logout template
+app.get('/logout', (req, res) => {
+  return models.Sessions.delete({ hash: req.cookies.shortlyid })
+  .then(() => {
+    res.clearCookie('shortlyid');
+    res.redirect('/login');
+  })
+  .error(error => {
+    res.status(500).send(error);
+  })
 })
 
 
@@ -124,40 +144,44 @@ app.post('/signup', (req, res, next) => {
   let username = req.body.username;
   let password = req.body.password;
 
+  console.log('user infos (signup) => ', username, password)
+
   return models.Users.get({ username })
     .then(user => {
       if(user) {
+
+        console.log('(signup) user already exists')
+
         //if user already exists, throw use to catch and redirect
         throw user;
       }
 
+      console.log('create the user');
+
       return models.Users.create({ userName, password });
     })
-    .then(result => {
+    .then(results => {
+      let userSession = models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
+
+      console.log('user session => ', userSession)
+
       return models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
     })
     .then(() => {
       // redirect to the root endpoint
+      console.log('POST (signup) redirect to root endpoint')
       res.redirect('/')
     })
     .error(error => {
+      console.log('POST (signup) throw error => ', error)
       res.status(500).send(error);
     })
     .catch(user => {
+      console.log('POST (signup) redirect to signup endpoint')
       res.redirect('/signup');
     });
 })
 
-app.get('/logout', (req, res) => {
-  return models.Sessions.delete({ hash: req.cookies.shortlyid })
-  .then(() => {
-    res.clearCookie('shortlyid');
-    res.redirect('/login');
-  })
-  .error(error => {
-    res.status(500).send(error);
-  })
-})
 
 
 
