@@ -84,12 +84,79 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
+// POST end-point for login
+app.post('/login', (req, res) => {
+  let username = req.body.username;
+  let password = req.body.password;
+
+  return models.Users.get({ username })
+    .then(use => {
+      // if user doesn't exist or the password doesn't match, throw error message
+      if(!user || !models.Users.compare(password, user.password, user.salt)) {
+        throw new Error('User name and password does not match');
+      }
+
+      // else create the session for the user
+      return models.Sessions.update({ hash: req.session.hash }, { userId: user.id });
+    })
+    .then(() => {
+      // redirect to root endpoint
+      res.redirect('/');
+    })
+    .error(error => {
+      // respond with an error message and status code 500
+      res.status(500).send(error);
+    })
+    .catch(() => {
+      // if fail to login, redirect to the login template
+      res.redirect('/login');
+    })
+})
+
+
+// GET end-point for sign up to render the template
 app.get('/signup', (req, res) => {
   res.render('signup');
 })
 
+// POST end-point for sign up
+app.post('/signup', (req, res, next) => {
+  let username = req.body.username;
+  let password = req.body.password;
+
+  return models.Users.get({ username })
+    .then(user => {
+      if(user) {
+        //if user already exists, throw use to catch and redirect
+        throw user;
+      }
+
+      return models.Users.create({ userName, password });
+    })
+    .then(result => {
+      return models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
+    })
+    .then(() => {
+      // redirect to the root endpoint
+      res.redirect('/')
+    })
+    .error(error => {
+      res.status(500).send(error);
+    })
+    .catch(user => {
+      res.redirect('/signup');
+    });
+})
+
 app.get('/logout', (req, res) => {
-  res.render('logout');
+  return models.Sessions.delete({ hash: req.cookies.shortlyid })
+  .then(() => {
+    res.clearCookie('shortlyid');
+    res.redirect('/login');
+  })
+  .error(error => {
+    res.status(500).send(error);
+  })
 })
 
 
