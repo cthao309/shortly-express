@@ -4,6 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+const CookieParser = require('./middleware/cookieParser');
 const models = require('./models');
 
 const app = express();
@@ -15,7 +16,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-
+// enable cookieParser
+app.use(CookieParser);
 
 app.get('/', (req, res) => {
   res.render('index');
@@ -81,6 +83,10 @@ app.get('/login', (req, res) => {
 
 app.get('/signup', (req, res) => {
   res.render('signup');
+})
+
+app.get('/logout', (req, res) => {
+  res.render('logout');
 })
 
 
