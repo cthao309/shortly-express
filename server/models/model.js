@@ -66,6 +66,9 @@ class Model {
    * during the query.
    */
   create(options) {
+
+    console.log('creating user (model.js/create) => ', options);
+
     let queryString = `INSERT INTO ${this.tablename} SET ?`;
     return executeQuery(queryString, options);
   }
