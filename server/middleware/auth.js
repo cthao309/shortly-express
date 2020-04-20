@@ -2,6 +2,9 @@ const models = require('../models');
 const Promise = require('bluebird');
 
 module.exports.createSession = (req, res, next) => {
+  // check for session cookie
+  // if !exists => create a new session
+  // else, load session from database
   Promise.resolve(req.cookies.shortlyid)
     .then(hash => {
       if(!hash) {
