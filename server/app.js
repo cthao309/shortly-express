@@ -19,6 +19,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 // enable cookieParser
 app.use(CookieParser);
 
+// enable Auth session
+app.use(Auth.createSession);
+
 app.get('/', (req, res) => {
   res.render('index');
 });
